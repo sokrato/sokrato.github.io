@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>File Reader & JS Executor</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .container {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #0f3460;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #0d0d1a;
+            color: #0f0;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #c73e54;
+        }
+        button.secondary {
+            background: #1a5f7a;
+        }
+        button.secondary:hover {
+            background: #154c63;
+        }
+        #output {
+            background: #0d0d1a;
+            color: #0f0;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            padding: 15px;
+            min-height: 300px;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .status {
+            color: #ffd700;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .error {
+            color: #ff4757;
+        }
+        .success {
+            color: #2ed573;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .hint {
+            color: #7f8fa6;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+        .examples {
+            background: #0d0d1a;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 3px solid #e94560;
+        }
+        .examples code {
+            color: #ffd700;
+            cursor: pointer;
+        }
+        .examples code:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🔓 JS Executor & File Reader</h2>
+        <p class="hint">在下方输入任意 JavaScript 代码，点击执行。结果会显示在输出区域。</p>
+        <div class="examples">
+            <strong>📌 示例（点击自动填入）：</strong><br>
+            <code onclick="fillExample('fetch(\'file:///etc/passwd\').then(r=>r.text()).then(d=>log(d)).catch(e=>log(\'Error: \'+e))')">读取 /etc/passwd</code> |
+            <code onclick="fillExample('fetch(\'file:///flag\').then(r=>r.text()).then(d=>log(d)).catch(e=>log(\'Error: \'+e))')">读取 /flag</code> |
+            <code onclick="fillExample('fetch(\'http://localhost:8000/\').then(r=>r.text()).then(d=>log(d)).catch(e=>log(\'Error: \'+e))')">访问 localhost:8000</code> |
+            <code onclick="fillExample('document.cookie')">查看 Cookie</code> |
+            <code onclick="fillExample('navigator.userAgent')">查看 UA</code>
+        </div>
+    </div>
+
+    <div class="container">
+        <textarea id="codeArea">// 在这里写你的 JS 代码
+// 使用 log() 函数输出结果到页面
+// 例如：
+fetch('file:///etc/passwd')
+  .then(res => res.text())
+  .then(data => {
+    log('✅ 读取成功！\n' + data);
+  })
+  .catch(err => {
+    log('❌ 错误：' + err.message);
+  });</textarea>
+        <div class="btn-group">
+            <button onclick="executeCode()">▶ 执行代码</button>
+            <button class="secondary" onclick="clearOutput()">清空输出</button>
+            <button class="secondary" onclick="resetCode()">重置代码</button>
+        </div>
+        <div id="status" class="status">就绪</div>
+    </div>
+
+    <div class="container">
+        <h3>📋 执行结果</h3>
+        <div id="output">// 等待执行...</div>
+    </div>
+
+    <script>
+        // 全局 log 函数，用于输出到页面
+        window.log = function(msg) {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${msg}\n`;
+            output.scrollTop = output.scrollHeight;
+        };
+
+        // 清空输出
+        function clearOutput() {
+            document.getElementById('output').textContent = '// 输出已清空';
+            document.getElementById('status').textContent = '已清空';
+            document.getElementById('status').className = 'status';
+        }
+
+        // 重置代码
+        function resetCode() {
+            document.getElementById('codeArea').value = `// 在这里写你的 JS 代码
+// 使用 log() 函数输出结果到页面
+// 例如：
+fetch('file:///etc/passwd')
+  .then(res => res.text())
+  .then(data => {
+    log('✅ 读取成功！\\n' + data);
+  })
+  .catch(err => {
+    log('❌ 错误：' + err.message);
+  });`;
+            clearOutput();
+        }
+
+        // 填入示例
+        function fillExample(code) {
+            document.getElementById('codeArea').value = code + '\n\n// 使用 log() 输出结果';
+        }
+
+        // 执行代码
+        function executeCode() {
+            const code = document.getElementById('codeArea').value;
+            const output = document.getElementById('output');
+            const status = document.getElementById('status');
+
+            // 清空旧输出，但保留自定义 log 函数
+            output.textContent = '// 执行中...\n';
+            status.textContent = '⏳ 执行中...';
+            status.className = 'status';
+
+            try {
+                // 重置 log 函数，确保能正常输出
+                window.log = function(msg) {
+                    const output = document.getElementById('output');
+                    const timestamp = new Date().toLocaleTimeString();
+                    output.textContent += `[${timestamp}] ${msg}\n`;
+                    output.scrollTop = output.scrollHeight;
+                };
+
+                // 使用 Function 构造函数执行，避免污染作用域
+                const fn = new Function(`
+                    // 注入 log 函数到代码作用域
+                    const log = window.log;
+                    try {
+                        ${code}
+                    } catch(e) {
+                        log('❌ 代码执行异常: ' + e.message);
+                        console.error(e);
+                    }
+                `);
+                
+                fn();
+                
+                status.textContent = '✅ 执行完成';
+                status.className = 'status success';
+            } catch (e) {
+                output.textContent += `\n❌ 执行错误: ${e.message}\n`;
+                status.textContent = '❌ 执行失败';
+                status.className = 'status error';
+                console.error(e);
+            }
+        }
+
+        // 在页面加载时自动执行一次（可选）
+        // 如果你想一打开页面就自动执行，取消注释下面这行
+        // window.onload = function() { setTimeout(executeCode, 500); };
+
+        // 支持 Ctrl+Enter 快捷键执行
+        document.getElementById('codeArea').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                executeCode();
+            }
+        });
+
+        console.log('✅ JS Executor 已加载');
+        console.log('💡 在代码中使用 log() 函数输出结果到页面');
+        console.log('💡 支持 Ctrl+Enter 快捷键执行');
+    </script>
+
+</body>
+</html>
